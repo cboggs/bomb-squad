@@ -73,6 +73,7 @@ func (p *Patrol) ListSuppressedMetrics() {
 }
 
 func (p *Patrol) RemoveSilence(label string) error {
+	var rulesDeleted = false
 	promConfig := promcfg.Config{}
 	promBytes := p.ConfigMap.ReadRawData(p.Ctx, p.ConfigMap.Key)
 	err := yaml.Unmarshal(promBytes, &promConfig)
@@ -91,6 +92,7 @@ func (p *Patrol) RemoveSilence(label string) error {
 		if i >= 0 {
 			scrapeConfig.MetricRelabelConfigs = DeleteRelabelConfigFromArray(scrapeConfig.MetricRelabelConfigs, i)
 			fmt.Printf("Deleted silence rule from ScrapeConfig %s\n", scrapeConfig.JobName)
+			rulesDeleted = true
 		}
 	}
 
@@ -113,6 +115,10 @@ func (p *Patrol) RemoveSilence(label string) error {
 	p.ConfigMap.CM.Data["bomb-squad.yaml"] = string(bsCfgBytes)
 	p.ConfigMap.CM.Data[p.ConfigMap.Key] = string(promConfigBytes)
 	p.ConfigMap.UpdateWithRetries(5)
+
+	if rulesDeleted {
+		prom.ReloadConfig(*p.Client)
+	}
 
 	resetMetric(metricName, labelName)
 

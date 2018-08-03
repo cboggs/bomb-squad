@@ -8,7 +8,6 @@ import (
 	"log"
 	"net/http"
 	"os"
-	"time"
 
 	configmap "github.com/Fresh-Tracks/bomb-squad/k8s/configmap"
 	"github.com/Fresh-Tracks/bomb-squad/patrol"
@@ -47,7 +46,6 @@ func init() {
 }
 
 func bootstrap(ctx context.Context, c configmap.ConfigMap, p patrol.Patrol) {
-	time.Sleep(5 * time.Second)
 	// TODO: Don't do this file write if the file already exists, but DO write the file
 	// if it's not present on disk but still present in the ConfigMap
 	b, err := ioutil.ReadFile("/etc/bomb-squad/rules.yaml")

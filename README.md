@@ -50,7 +50,53 @@ To trigger a cardinality explosion and consequently a suppression event by Bomb 
 curl -i $(minikube service statspitter --url)/toggle
 ```
 
-If you watch the bomb-squad container logs, you should see some detection and rule insertion messages go by after a few seconds. 
+If you watch the bomb-squad container logs, you should see some detection and rule insertion messages go by after a few seconds. Bomb Squad automatically reloads the Prometheus config, so you won't need to take any further action to suppress the explosion!
+
+You can view Bomb Squad's metrics in Prometheus by querying for `bomb_squad_exploding_label_distinct_values`.
+You can also view what `metric.label` combinations Bomb Squad is currently silencing by using the CLI in the running container:
+```bash
+kubectl exec <prometheus_pod_name> -c bomb-squad -- bs list
+```
+
+To remediate our simulated "bad code deploy" that caused the explosion, delete the statspitter pod to stop the explosion and dump the old exploded series from its registry:
+```bash
+kubectl delete pod -l app=statspitter
+```
+
+Finally, to remove the silence on our test metric:
+```bash
+kubectl exec <prometheus_pod_name> -c bomb-squad -- bs unsilence <metric.label as shown by bs list above>
+```
 
 ## Deploying Bomb Squad
+Bomb Squad needs to be deployed as a sidecar container inside your Prometheus pod(s), and there are a couple of requirements to note:
+* Bomb Squad should start up after Prometheus to avoid failed API calls while Prometheus initializes
+* Bomb Squad needs to mount an `emptyDir` volume so that it has a place from which to bootstrap its rules
 
+A container spec along the lines of the following, added to your Prometheus pod spec, should do the trick:
+```bash
+spec:
+  ...
+  template:
+    ...
+    spec:
+    ...
+      containers:
+        ...
+        <prometheus container spec>
+        ...
+        - name: bomb-squad
+          image: gcr.io/freshtracks-io/bomb-squad:latest
+          args:
+          - -prom-url=localhost:9090 # In case you run Prometheus on a non-standard port
+          ports:
+          - containerPort: 8080
+            protocol: TCP
+          volumeMounts:
+          - mountPath: /etc/config/bomb-squad
+            name: bomb-squad-rules
+      volumes:
+        ...
+        - emptyDir: {}
+          name: bomb-squad-rules
+```
