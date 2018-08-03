@@ -172,13 +172,14 @@ func (p *Patrol) FindRelabelConfigInScrapeConfig(encodedRule string, scrapeConfi
 	return -1
 }
 
-func (p *Patrol) InsertMetricRelabelConfigToPromConfig(rc promcfg.RelabelConfig) promcfg.Config {
+func (p *Patrol) InsertMetricRelabelConfigToPromConfig(rc promcfg.RelabelConfig, newRulesInserted *bool) promcfg.Config {
 	promConfig := prom.GetPrometheusConfig(p.Ctx, *p.ConfigMap)
 	rcEncoded := rc.Encode()
 	for _, scrapeConfig := range promConfig.ScrapeConfigs {
 		if p.FindRelabelConfigInScrapeConfig(rcEncoded, *scrapeConfig) == -1 {
 			fmt.Printf("Did not find necessary silence rule in ScrapeConfig %s, adding now\n", scrapeConfig.JobName)
 			scrapeConfig.MetricRelabelConfigs = append(scrapeConfig.MetricRelabelConfigs, &rc)
+			*newRulesInserted = true
 		}
 	}
 	return promConfig

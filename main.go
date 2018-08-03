@@ -8,6 +8,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"time"
 
 	configmap "github.com/Fresh-Tracks/bomb-squad/k8s/configmap"
 	"github.com/Fresh-Tracks/bomb-squad/patrol"
@@ -45,7 +46,8 @@ func init() {
 	prometheus.MustRegister(patrol.ExplodingLabelGauge)
 }
 
-func bootstrap(ctx context.Context, c configmap.ConfigMap) {
+func bootstrap(ctx context.Context, c configmap.ConfigMap, p patrol.Patrol) {
+	time.Sleep(5 * time.Second)
 	// TODO: Don't do this file write if the file already exists, but DO write the file
 	// if it's not present on disk but still present in the ConfigMap
 	b, err := ioutil.ReadFile("/etc/bomb-squad/rules.yaml")
@@ -55,6 +57,7 @@ func bootstrap(ctx context.Context, c configmap.ConfigMap) {
 	err = ioutil.WriteFile("/etc/config/bomb-squad/rules.yaml", b, 0644)
 
 	prom.AppendRuleFile(ctx, "/etc/config/bomb-squad/rules.yaml", c)
+	prom.ReloadConfig(*p.Client)
 }
 
 func main() {
@@ -109,7 +112,7 @@ func main() {
 		os.Exit(0)
 	}
 
-	bootstrap(ctx, cm)
+	bootstrap(ctx, cm, p)
 	go p.Run()
 
 	mux := http.DefaultServeMux
@@ -123,6 +126,6 @@ func main() {
 	}
 
 	fmt.Println("Welcome to bomb-squad")
-	log.Println("serving prometheus endpoints on port 8080")
+	log.Println("Serving metrics on port 8080")
 	log.Fatal(server.ListenAndServe())
 }

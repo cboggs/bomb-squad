@@ -3,6 +3,7 @@ package prom
 import (
 	"context"
 	"log"
+	"net/http"
 
 	configmap "github.com/Fresh-Tracks/bomb-squad/k8s/configmap"
 	promcfg "github.com/Fresh-Tracks/bomb-squad/prom/config"
@@ -42,5 +43,22 @@ func AppendRuleFile(ctx context.Context, filename string, c configmap.ConfigMap)
 			return err
 		}
 	}
+	return nil
+}
+
+func ReloadConfig(client http.Client) error {
+	endpt := "http://localhost:9090/-/reload"
+	req, _ := http.NewRequest("POST", endpt, nil)
+
+	resp, err := client.Do(req)
+	if err != nil {
+		log.Println("Error reloading Prometheus config", err)
+		return err
+	}
+
+	// defer can't check error states, and GoMetaLinter complains
+	log.Println("Successfully reloaded Prometheus config")
+	_ = resp.Body.Close()
+
 	return nil
 }
