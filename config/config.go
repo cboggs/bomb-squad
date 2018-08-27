@@ -13,13 +13,8 @@ import (
 	yaml "gopkg.in/yaml.v2"
 )
 
-type PromConfigurator interface {
-	Read() promcfg.Config
-	Write([]byte) error
-}
-
-type BSConfigurator interface {
-	Read() BombSquadConfig
+type Configurator interface {
+	Read() []byte
 	Write([]byte) error
 }
 
@@ -29,24 +24,48 @@ type BombSquadConfig struct {
 	SuppressedMetrics map[string]BombSquadLabelConfig
 }
 
-func GetBombSquadConfig(bc BSConfigurator) BombSquadConfig {
-	b := bc.Read()
-	//	if len(bsConfig) > 0 {
-	//		err := yaml.Unmarshal(bsConfig, &b)
-	//		if err != nil {
-	//			log.Fatal(err)
-	//		}
-	//	}
-
-	if b.SuppressedMetrics == nil {
-		b.SuppressedMetrics = map[string]BombSquadLabelConfig{}
+func ReadBombSquadConfig(c Configurator) BombSquadConfig {
+	b := c.Read()
+	bscfg := BombSquadConfig{}
+	err := yaml.Unmarshal(b, &bscfg)
+	if err != nil {
+		log.Fatalf("Couldn't unmarshal into BombSquadConfig: %s\n", err)
+	}
+	if bscfg.SuppressedMetrics == nil {
+		bscfg.SuppressedMetrics = map[string]BombSquadLabelConfig{}
 	}
 
-	return b
+	return bscfg
 }
 
-func ListSuppressedMetrics(bc BSConfigurator) {
-	b := GetBombSquadConfig(bc)
+func ReadPromConfig(c Configurator) promcfg.Config {
+	b := c.Read()
+	pcfg := promcfg.Config{}
+	err := yaml.Unmarshal(b, &pcfg)
+	if err != nil {
+		log.Fatalf("Couldn't unmarshal into promcfg.Config: %s\n", err)
+	}
+	return pcfg
+}
+
+func WriteBombSquadConfig(bscfg BombSquadConfig, c Configurator) error {
+	b, err := yaml.Marshal(bscfg)
+	if err != nil {
+		return err
+	}
+	return c.Write(b)
+}
+
+func WritePromConfig(pcfg promcfg.Config, c Configurator) error {
+	b, err := yaml.Marshal(pcfg)
+	if err != nil {
+		return err
+	}
+	return c.Write(b)
+}
+
+func ListSuppressedMetrics(c Configurator) {
+	b := ReadBombSquadConfig(c)
 	for metric, labels := range b.SuppressedMetrics {
 		for label := range labels {
 			fmt.Printf("%s.%s\n", metric, label)
@@ -54,13 +73,13 @@ func ListSuppressedMetrics(bc BSConfigurator) {
 	}
 }
 
-func RemoveSilence(label string, pc PromConfigurator, bc BSConfigurator) error {
-	promConfig := pc.Read()
+func RemoveSilence(label string, pc, bc Configurator) error {
+	promConfig := ReadPromConfig(pc)
 
 	ml := strings.Split(label, ".")
 	metricName, labelName := ml[0], ml[1]
 
-	bsCfg := GetBombSquadConfig(bc)
+	bsCfg := ReadBombSquadConfig(bc)
 	bsRelabelConfigEncoded := bsCfg.SuppressedMetrics[metricName][labelName]
 
 	for _, scrapeConfig := range promConfig.ScrapeConfigs {
@@ -77,26 +96,16 @@ func RemoveSilence(label string, pc PromConfigurator, bc BSConfigurator) error {
 		delete(bsCfg.SuppressedMetrics[metricName], labelName)
 	}
 
-	bsCfgBytes, err := yaml.Marshal(bsCfg)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	promConfigBytes, err := yaml.Marshal(promConfig)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	bc.Write(bsCfgBytes)
-	pc.Write(promConfigBytes)
+	WriteBombSquadConfig(bsCfg, bc)
+	WritePromConfig(promConfig, pc)
 
 	resetMetric(metricName, labelName)
 
 	return nil
 }
 
-func StoreMetricRelabelConfigBombSquad(s HighCardSeries, mrc promcfg.RelabelConfig, bc BSConfigurator) {
-	b := GetBombSquadConfig(bc)
+func StoreMetricRelabelConfigBombSquad(s HighCardSeries, mrc promcfg.RelabelConfig, c Configurator) {
+	b := ReadBombSquadConfig(c)
 	if lc, ok := b.SuppressedMetrics[s.MetricName]; ok {
 		lc[string(s.HighCardLabelName)] = Encode(mrc)
 	} else {
@@ -105,14 +114,9 @@ func StoreMetricRelabelConfigBombSquad(s HighCardSeries, mrc promcfg.RelabelConf
 		lc[string(s.HighCardLabelName)] = Encode(mrc)
 	}
 
-	res, err := yaml.Marshal(b)
+	err := WriteBombSquadConfig(b, c)
 	if err != nil {
-		log.Fatal(err)
-	}
-
-	err = bc.Write(res)
-	if err != nil {
-		log.Fatal(err)
+		log.Fatalf("Failed to write BombSquadConfig: %s\n", err)
 	}
 }
 
@@ -136,8 +140,8 @@ func FindRelabelConfigInScrapeConfig(encodedRule string, scrapeConfig promcfg.Sc
 	return -1
 }
 
-func InsertMetricRelabelConfigToPromConfig(rc promcfg.RelabelConfig, pc PromConfigurator) promcfg.Config {
-	promConfig := pc.Read()
+func InsertMetricRelabelConfigToPromConfig(rc promcfg.RelabelConfig, c Configurator) promcfg.Config {
+	promConfig := ReadPromConfig(c)
 	rcEncoded := Encode(rc)
 	for _, scrapeConfig := range promConfig.ScrapeConfigs {
 		if FindRelabelConfigInScrapeConfig(rcEncoded, *scrapeConfig) == -1 {
@@ -147,6 +151,7 @@ func InsertMetricRelabelConfigToPromConfig(rc promcfg.RelabelConfig, pc PromConf
 	}
 	return promConfig
 }
+
 func Encode(rc promcfg.RelabelConfig) string {
 	b, err := yaml.Marshal(rc)
 	if err != nil {

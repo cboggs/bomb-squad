@@ -22,8 +22,8 @@ type Patrol struct {
 	HighCardN         int
 	HighCardThreshold float64
 	HTTPClient        *http.Client
-	PromConfigurator  config.PromConfigurator
-	BSConfigurator    config.BSConfigurator
+	PromConfigurator  config.Configurator
+	BSConfigurator    config.Configurator
 	Ctx               context.Context
 }
 

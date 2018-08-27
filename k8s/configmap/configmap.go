@@ -1,7 +1,6 @@
 package configmap
 
 import (
-	promcfg "github.com/prometheus/prometheus/config"
 	"k8s.io/client-go/kubernetes"
 	kcorev1 "k8s.io/client-go/kubernetes/typed/core/v1"
 )
@@ -23,8 +22,8 @@ func NewConfigMapWrapper(client kubernetes.Interface, namespace string, configMa
 }
 
 // Read implements github.com/Fresh-Tracks/bomb-squad/config.Configurator
-func (c *ConfigMapWrapper) Read() promcfg.Config {
-	return promcfg.Config{}
+func (c *ConfigMapWrapper) Read() []byte {
+	return []byte("NOT YET YO")
 }
 
 // Write implements github.com/Fresh-Tracks/bomb-squad/config.Configurator
