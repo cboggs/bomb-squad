@@ -22,12 +22,17 @@ IMAGE_NAME := gcr.io/freshtracks-io/bomb-squad:$(SHORT_SHA)
 vendor/vendor.json:
 	govendor init
 
-vendor: vendor/vendor.json
+vendor: vendor/vendor.json vendor/.uptodate
 	govendor add +external
 	govendor update +external
+	touch vendor/vendor.json
 
 unused: vendor/vendor.json
 	govendor list +unused
+
+vendor/.uptodate:
+	@echo "Updating vendored bits..."
+
 version:
 	@echo PROMETHEUS: $(PROM_VERSION)
 	@echo PROMETHEUS RULES: $(PROM_RULES_VERSION)

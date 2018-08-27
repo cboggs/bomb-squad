@@ -8,11 +8,12 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/Fresh-Tracks/bomb-squad/config"
 	"github.com/Fresh-Tracks/bomb-squad/prom"
-	promcfg "github.com/Fresh-Tracks/bomb-squad/prom/config"
 	"github.com/deckarep/golang-set"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/common/model"
+	yaml "gopkg.in/yaml.v2"
 )
 
 var (
@@ -31,7 +32,7 @@ var (
 type labelTracker map[string]mapset.Set
 
 func (p *Patrol) getTopCardinalities() error {
-	var highCardSeries []promcfg.HighCardSeries
+	var highCardSeries []config.HighCardSeries
 
 	relativeURL, err := url.Parse("/api/v1/query")
 	if err != nil {
@@ -44,7 +45,7 @@ func (p *Patrol) getTopCardinalities() error {
 
 	queryURL := p.PromURL.ResolveReference(relativeURL)
 
-	b, err := prom.Fetch(queryURL.String(), p.Client)
+	b, err := prom.Fetch(queryURL.String(), p.HTTPClient)
 	if err != nil {
 		return fmt.Errorf("failed to fetch query from prometheus: %s", err)
 	}
@@ -61,16 +62,17 @@ func (p *Patrol) getTopCardinalities() error {
 	}
 
 	for _, s := range highCardSeries {
-		mrc := promcfg.GenerateMetricRelabelConfig(s)
+		mrc := config.GenerateMetricRelabelConfig(s)
 
-		newPromConfig := p.InsertMetricRelabelConfigToPromConfig(mrc)
+		newPromConfig := config.InsertMetricRelabelConfigToPromConfig(mrc, p.PromConfigurator)
+		newPromConfigBytes, err := yaml.Marshal(newPromConfig)
 
-		err := p.ConfigMap.Update(p.Ctx, newPromConfig)
+		err = p.PromConfigurator.Write(newPromConfigBytes)
 		if err != nil {
 			log.Fatal(err)
 		}
 
-		p.StoreMetricRelabelConfigBombSquad(s, mrc)
+		config.StoreMetricRelabelConfigBombSquad(s, mrc, p.BSConfigurator)
 	}
 
 	return nil
@@ -124,7 +126,7 @@ func (p *Patrol) tryToFindStableValues(metric, label string, currentSet mapset.S
 
 		urlString := fmt.Sprintf("http://%s/api/v1/series?match[]=%s&start=%d&end=%d", p.PromURL, metric, start, end)
 
-		b, err := prom.Fetch(urlString, p.Client)
+		b, err := prom.Fetch(urlString, p.HTTPClient)
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -151,7 +153,7 @@ func (p *Patrol) tryToFindStableValues(metric, label string, currentSet mapset.S
 	return earlierSet
 }
 
-func (p *Patrol) findHighCardSeries(metrics []string) []promcfg.HighCardSeries {
+func (p *Patrol) findHighCardSeries(metrics []string) []config.HighCardSeries {
 	hwmLabel := ""
 	var (
 		s      prom.Series
@@ -159,12 +161,12 @@ func (p *Patrol) findHighCardSeries(metrics []string) []promcfg.HighCardSeries {
 		hwm, l int
 		err    error
 	)
-	res := []promcfg.HighCardSeries{}
+	res := []config.HighCardSeries{}
 
 	for _, metricName := range metrics {
 		urlString := fmt.Sprintf("http://%s/api/v1/series?match[]=%s", p.PromURL, metricName)
 
-		b, err = prom.Fetch(urlString, p.Client)
+		b, err = prom.Fetch(urlString, p.HTTPClient)
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -192,7 +194,7 @@ func (p *Patrol) findHighCardSeries(metrics []string) []promcfg.HighCardSeries {
 		}
 
 		res = append(res,
-			promcfg.HighCardSeries{
+			config.HighCardSeries{
 				MetricName:        metricName,
 				HighCardLabelName: model.LabelName(hwmLabel),
 			},

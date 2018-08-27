@@ -11,18 +11,24 @@ import (
 	"os"
 	"time"
 
+	"github.com/Fresh-Tracks/bomb-squad/config"
 	configmap "github.com/Fresh-Tracks/bomb-squad/k8s/configmap"
 	"github.com/Fresh-Tracks/bomb-squad/patrol"
 	"github.com/Fresh-Tracks/bomb-squad/prom"
 	"github.com/Fresh-Tracks/bomb-squad/util"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
+	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/rest"
 )
 
 var (
 	version          = "undefined"
 	promVersion      = "undefined"
 	promRulesVersion = "undefined"
+	inK8s            = flag.Bool("k8s", false, "Whether bomb-squad is being deployed in a Kubernetes cluster")
+	k8sNamespace     = flag.String("k8s-namespace", "default", "Kubernetes namespace holding Prometheus ConfigMap")
+	k8sConfigMapName = flag.String("k8s-configmap", "prometheus", "Name of the Kubernetes ConfigMap holding Prometheus configuration")
 	metricsPort      = flag.Int("metrics-port", 8080, "Port on which to listen for metric scrapes")
 	promURL          = flag.String("prom-url", "http://localhost:9090", "Prometheus URL to query")
 	cmName           = flag.String("configmap-name", "prometheus", "Name of the Prometheus ConfigMap")
@@ -40,6 +46,9 @@ var (
 			},
 		},
 	)
+	k8sClientSet     kubernetes.Interface
+	promConfigurator config.PromConfigurator
+	bsConfigurator   config.BSConfigurator
 )
 
 func init() {
@@ -73,46 +82,53 @@ func main() {
 		log.Fatal(out)
 	}
 
+	if *inK8s {
+		inClusterConfig, err := rest.InClusterConfig()
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		k8sClientSet, err = kubernetes.NewForConfig(inClusterConfig)
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		promConfigurator = configmap.NewConfigMapWrapper(k8sClientSet, *k8sNamespace, *k8sConfigMapName)
+		bsConfigurator = configmap.NewConfigMapWrapper(k8sClientSet, *k8sNamespace, *k8sConfigMapName)
+	}
+
 	promurl, err := url.Parse(*promURL)
 	if err != nil {
 		log.Fatalf("could not parse prometheus url: %s", err)
 	}
 
-	client, err := util.HttpClient()
+	httpClient, err := util.HttpClient()
 	if err != nil {
 		log.Fatalf("could not create http client: %s", err)
 	}
-
-	ctx := context.Background()
-	cm := configmap.ConfigMap{
-		Name:        *cmName,
-		Key:         *cmKey,
-		LastUpdated: 0,
-		Ctx:         ctx,
-	}
-	cm.Init(ctx)
 
 	p := patrol.Patrol{
 		PromURL:           promurl,
 		Interval:          5 * time.Second,
 		HighCardN:         5,
 		HighCardThreshold: 100,
-		Client:            client,
-		ConfigMap:         &cm,
+		HTTPClient:        httpClient,
+		PromConfigurator:  promConfigurator,
+		BSConfigurator:    bsConfigurator,
 		Ctx:               ctx,
 	}
 
 	cmd := os.Args[1]
 	if cmd == "list" {
 		fmt.Println("Suppressed Labels (metricName.labelName):")
-		p.ListSuppressedMetrics()
+		config.ListSuppressedMetrics(p.BSConfigurator)
 		os.Exit(0)
 	}
 
 	if cmd == "unsilence" {
 		label := os.Args[2]
 		fmt.Printf("Removing silence rule for suppressed label: %s\n", label)
-		p.RemoveSilence(label)
+		config.RemoveSilence(label, p.PromConfigurator, p.BSConfigurator)
 		os.Exit(0)
 	}
 
