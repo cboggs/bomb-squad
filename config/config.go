@@ -197,7 +197,9 @@ func GenerateMetricRelabelConfig(s HighCardSeries) promcfg.RelabelConfig {
 
 func resetMetric(metricName, labelName string) {
 	client, _ := util.HttpClient()
-	// What is this localhost 8080?
+	// TODO This is a hack currently, to allow the CLI invocation of `unsilence` to actually get to the metric
+	// that needs reset. Should not assume that CLI will be invoked from the running instance, and make this
+	// configurable
 	endpt := fmt.Sprintf("http://localhost:8080/metrics/reset?metric=%s&label=%s", metricName, labelName)
 	req, _ := http.NewRequest("GET", endpt, nil)
 

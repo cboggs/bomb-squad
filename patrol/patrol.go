@@ -1,7 +1,6 @@
 package patrol
 
 import (
-	"context"
 	"fmt"
 	"log"
 	"net/http"
@@ -24,7 +23,6 @@ type Patrol struct {
 	HTTPClient        *http.Client
 	PromConfigurator  config.Configurator
 	BSConfigurator    config.Configurator
-	Ctx               context.Context
 }
 
 func (p *Patrol) Run() {

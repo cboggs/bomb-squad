@@ -1,14 +1,12 @@
 package prom
 
 import (
-	"context"
-
 	"github.com/Fresh-Tracks/bomb-squad/config"
 )
 
 // AppendRuleFile Appends a static rule file that Bomb Squad needs into the
 // array of rule files that may exist in the current Prometheus config
-func AppendRuleFile(ctx context.Context, filename string, c config.Configurator) error {
+func AppendRuleFile(filename string, c config.Configurator) error {
 	cfg := config.ReadPromConfig(c)
 	configRuleFiles := cfg.RuleFiles
 	ruleFileFound := false

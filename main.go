@@ -3,6 +3,7 @@ package main
 import (
 	"flag"
 	"fmt"
+	"io/ioutil"
 	"log"
 	"net/http"
 	"net/url"
@@ -12,6 +13,7 @@ import (
 	"github.com/Fresh-Tracks/bomb-squad/config"
 	configmap "github.com/Fresh-Tracks/bomb-squad/k8s/configmap"
 	"github.com/Fresh-Tracks/bomb-squad/patrol"
+	"github.com/Fresh-Tracks/bomb-squad/prom"
 	"github.com/Fresh-Tracks/bomb-squad/util"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
@@ -53,17 +55,17 @@ func init() {
 	prometheus.MustRegister(patrol.ExplodingLabelGauge)
 }
 
-//func bootstrap(ctx context.Context, c configmap.ConfigMap) {
-//	// TODO: Don't do this file write if the file already exists, but DO write the file
-//	// if it's not present on disk but still present in the ConfigMap
-//	b, err := ioutil.ReadFile("/etc/bomb-squad/rules.yaml")
-//	if err != nil {
-//		log.Fatal(err)
-//	}
-//	err = ioutil.WriteFile("/etc/config/bomb-squad/rules.yaml", b, 0644)
-//
-//	prom.AppendRuleFile(ctx, "/etc/config/bomb-squad/rules.yaml", c)
-//}
+func bootstrap(c config.Configurator) {
+	// TODO: Don't do this file write if the file already exists, but DO write the file
+	// if it's not present on disk but still present in the ConfigMap
+	b, err := ioutil.ReadFile("/etc/bomb-squad/rules.yaml")
+	if err != nil {
+		log.Fatal(err)
+	}
+	err = ioutil.WriteFile("/etc/config/bomb-squad/rules.yaml", b, 0644)
+
+	prom.AppendRuleFile("/etc/config/bomb-squad/rules.yaml", c)
+}
 
 func main() {
 	flag.Parse()
@@ -112,7 +114,6 @@ func main() {
 		HTTPClient:        httpClient,
 		PromConfigurator:  promConfigurator,
 		BSConfigurator:    bsConfigurator,
-		//		Ctx:               ctx,
 	}
 
 	cmd := os.Args[1]
@@ -129,7 +130,9 @@ func main() {
 		os.Exit(0)
 	}
 
-	//bootstrap(ctx, cm)
+	if *inK8s {
+		bootstrap(p.PromConfigurator)
+	}
 	go p.Run()
 
 	mux := http.DefaultServeMux
