@@ -39,7 +39,7 @@ local bombSquadContainer =
   container
   .new('bomb-squad', bs.image + ':' + bs.imageTag)
   .withPorts(containerPort.new(bs.containerPort))
-  .withArgs(['-prom-url=localhost:9090'])
+  //.withArgs(['-prom-url=localhost:9090'])
   .withImagePullPolicy('Never')
   .withVolumeMounts([
     {

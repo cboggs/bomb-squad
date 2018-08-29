@@ -124,9 +124,14 @@ func (p *Patrol) tryToFindStableValues(metric, label string, currentSet mapset.S
 		end = start + 570
 		start = end - 600
 
-		urlString := fmt.Sprintf("http://%s/api/v1/series?match[]=%s&start=%d&end=%d", p.PromURL, metric, start, end)
+		relativeURL, err := url.Parse("/api/v1/series")
+		query := p.PromURL.Query()
+		query.Set("match[]", fmt.Sprintf("%s&start=%d&end=%d", p.PromURL, metric, start, end))
+		relativeURL.RawQuery = query.Encode()
 
-		b, err := prom.Fetch(urlString, p.HTTPClient)
+		queryURL := p.PromURL.ResolveReference(relativeURL)
+
+		b, err := prom.Fetch(queryURL.String(), p.HTTPClient)
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -157,16 +162,20 @@ func (p *Patrol) findHighCardSeries(metrics []string) []config.HighCardSeries {
 	hwmLabel := ""
 	var (
 		s      prom.Series
-		b      []byte
 		hwm, l int
-		err    error
 	)
 	res := []config.HighCardSeries{}
 
 	for _, metricName := range metrics {
-		urlString := fmt.Sprintf("http://%s/api/v1/series?match[]=%s", p.PromURL, metricName)
 
-		b, err = prom.Fetch(urlString, p.HTTPClient)
+		relativeURL, err := url.Parse("/api/v1/series")
+		query := p.PromURL.Query()
+		query.Set("match[]", fmt.Sprint(metricName))
+		relativeURL.RawQuery = query.Encode()
+
+		queryURL := p.PromURL.ResolveReference(relativeURL)
+
+		b, err := prom.Fetch(queryURL.String(), p.HTTPClient)
 		if err != nil {
 			log.Fatal(err)
 		}

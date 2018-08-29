@@ -100,6 +100,7 @@ func main() {
 	if err != nil {
 		log.Fatalf("could not parse prometheus url: %s", err)
 	}
+	log.Printf("PROMURL: %+v\n", promurl)
 
 	httpClient, err := util.HttpClient()
 	if err != nil {
@@ -116,18 +117,20 @@ func main() {
 		BSConfigurator:    bsConfigurator,
 	}
 
-	cmd := os.Args[1]
-	if cmd == "list" {
-		fmt.Println("Suppressed Labels (metricName.labelName):")
-		config.ListSuppressedMetrics(p.BSConfigurator)
-		os.Exit(0)
-	}
+	if len(os.Args) > 1 {
+		cmd := os.Args[1]
+		if cmd == "list" {
+			fmt.Println("Suppressed Labels (metricName.labelName):")
+			config.ListSuppressedMetrics(p.BSConfigurator)
+			os.Exit(0)
+		}
 
-	if cmd == "unsilence" {
-		label := os.Args[2]
-		fmt.Printf("Removing silence rule for suppressed label: %s\n", label)
-		config.RemoveSilence(label, p.PromConfigurator, p.BSConfigurator)
-		os.Exit(0)
+		if cmd == "unsilence" {
+			label := os.Args[2]
+			fmt.Printf("Removing silence rule for suppressed label: %s\n", label)
+			config.RemoveSilence(label, p.PromConfigurator, p.BSConfigurator)
+			os.Exit(0)
+		}
 	}
 
 	if *inK8s {
