@@ -126,7 +126,7 @@ func (p *Patrol) tryToFindStableValues(metric, label string, currentSet mapset.S
 
 		relativeURL, err := url.Parse("/api/v1/series")
 		query := p.PromURL.Query()
-		query.Set("match[]", fmt.Sprintf("%s&start=%d&end=%d", p.PromURL, metric, start, end))
+		query.Set("match[]", fmt.Sprintf("%s&start=%d&end=%d", metric, start, end))
 		relativeURL.RawQuery = query.Encode()
 
 		queryURL := p.PromURL.ResolveReference(relativeURL)
