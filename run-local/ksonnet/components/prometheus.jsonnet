@@ -35,6 +35,141 @@ local dataVolumeMount = {
   readOnly: false,
 };
 
+local serviceAccount =
+  {
+    apiVersion: 'v1',
+    kind: 'ServiceAccount',
+    metadata: {
+      name: 'prometheus',
+      namespace: 'default',
+    },
+  };
+
+local clusterRoleBinding =
+  {
+    apiVersion: 'rbac.authorization.k8s.io/v1',
+    kind: 'ClusterRoleBinding',
+    metadata: {
+      name: 'prometheus',
+    },
+    roleRef: {
+      apiGroup: 'rbac.authorization.k8s.io',
+      kind: 'ClusterRole',
+      name: 'prometheus',
+    },
+    subjects: [
+      {
+        kind: 'ServiceAccount',
+        name: 'prometheus',
+        namespace: 'default',
+      },
+    ],
+  };
+
+local clusterRole =
+  {
+    apiVersion: 'rbac.authorization.k8s.io/v1',
+    kind: 'ClusterRole',
+    metadata: {
+      name: 'prometheus',
+    },
+    rules: [
+      {
+        apiGroups: [
+          '',
+        ],
+        resources: [
+          'configmaps',
+        ],
+        verbs: [
+          'get',
+          'list',
+          'watch',
+          'patch',
+          'update',
+          'create',
+        ],
+      },
+      {
+        apiGroups: [
+          '',
+        ],
+        resources: [
+          'nodes',
+          'nodes/proxy',
+          'services',
+          'endpoints',
+          'resourcequotas',
+          'replicationcontrollers',
+          'limitranges',
+          'pods',
+          'namespaces',
+          'persistentvolumeclaims',
+        ],
+        verbs: [
+          'get',
+          'list',
+          'watch',
+        ],
+      },
+      {
+        apiGroups: [
+          'extensions',
+        ],
+        resources: [
+          'ingresses',
+          'daemonsets',
+          'daemonsets/status',
+          'daemonsets/finalizers',
+          'deployments',
+          'replicasets',
+        ],
+        verbs: [
+          'get',
+          'list',
+          'watch',
+        ],
+      },
+      {
+        apiGroups: [
+          'batch',
+        ],
+        resources: [
+          'cronjobs',
+          'jobs',
+        ],
+        verbs: [
+          'get',
+          'list',
+          'watch',
+        ],
+      },
+      {
+        apiGroups: [
+          'apps',
+        ],
+        resources: [
+          'statefulsets',
+        ],
+        verbs: [
+          'get',
+          'list',
+          'watch',
+        ],
+      },
+      {
+        nonResourceURLs: [
+          '/metrics',
+        ],
+        verbs: [
+          'get',
+        ],
+      },
+    ],
+  }
+
+;
+
 local bombSquadContainer =
   container
   .new('bomb-squad', bs.image + ':' + bs.imageTag)
@@ -116,6 +251,7 @@ local appDeployment =
       name: 'bomb-squad-rules',
       emptyDir: {},
     },
-  ]);
+  ])
+  + deployment.mixin.spec.template.spec.withServiceAccount('prometheus');
 
-k.core.v1.list.new([prometheusService, appDeployment, cm])
+k.core.v1.list.new([prometheusService, appDeployment, cm, serviceAccount, clusterRole, clusterRoleBinding])
