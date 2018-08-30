@@ -1,7 +1,11 @@
 package prom
 
 import (
+	"log"
+
 	"github.com/Fresh-Tracks/bomb-squad/config"
+	promcfg "github.com/prometheus/prometheus/config"
+	yaml "gopkg.in/yaml.v2"
 )
 
 // AppendRuleFile Appends a static rule file that Bomb Squad needs into the
@@ -26,4 +30,19 @@ func AppendRuleFile(filename string, c config.Configurator) error {
 		}
 	}
 	return nil
+}
+
+// ReUnmarshal simply marshals a RelabelConfig and unmarshals it again back into place.
+// This is needed to accomodate an "expansion", if you will, of the prometheus.config
+// Regexp struct's string representation that happens only upon unmarshalling it.
+// TODO: (TODON'T?) Instead of this, figure out the unmarshalling quirk and change it
+func ReUnmarshal(rc *promcfg.RelabelConfig) {
+	s, err := yaml.Marshal(rc)
+	if err != nil {
+		log.Fatal(err)
+	}
+	err = yaml.Unmarshal(s, rc)
+	if err != nil {
+		log.Fatal(err)
+	}
 }

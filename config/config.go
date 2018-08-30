@@ -110,11 +110,11 @@ func RemoveSilence(label string, pc, bc Configurator) error {
 func StoreMetricRelabelConfigBombSquad(s HighCardSeries, mrc promcfg.RelabelConfig, c Configurator) {
 	b := ReadBombSquadConfig(c)
 	if lc, ok := b.SuppressedMetrics[s.MetricName]; ok {
-		lc[string(s.HighCardLabelName)] = Encode(mrc)
+		lc[string(s.HighCardLabelName)] = encode(mrc)
 	} else {
 		b.SuppressedMetrics[s.MetricName] = lc
 		lc = BombSquadLabelConfig{}
-		lc[string(s.HighCardLabelName)] = Encode(mrc)
+		lc[string(s.HighCardLabelName)] = encode(mrc)
 	}
 
 	err := WriteBombSquadConfig(b, c)
@@ -135,7 +135,7 @@ func DeleteRelabelConfigFromArray(arr []*promcfg.RelabelConfig, index int) []*pr
 
 func FindRelabelConfigInScrapeConfig(encodedRule string, scrapeConfig promcfg.ScrapeConfig) int {
 	for i, relabelConfig := range scrapeConfig.MetricRelabelConfigs {
-		if Encode(*relabelConfig) == encodedRule {
+		if encode(*relabelConfig) == encodedRule {
 			return i
 		}
 	}
@@ -145,7 +145,7 @@ func FindRelabelConfigInScrapeConfig(encodedRule string, scrapeConfig promcfg.Sc
 
 func InsertMetricRelabelConfigToPromConfig(rc promcfg.RelabelConfig, c Configurator) promcfg.Config {
 	promConfig := ReadPromConfig(c)
-	rcEncoded := Encode(rc)
+	rcEncoded := encode(rc)
 	for _, scrapeConfig := range promConfig.ScrapeConfigs {
 		if FindRelabelConfigInScrapeConfig(rcEncoded, *scrapeConfig) == -1 {
 			fmt.Printf("Did not find necessary silence rule in ScrapeConfig %s, adding now\n", scrapeConfig.JobName)
@@ -155,7 +155,7 @@ func InsertMetricRelabelConfigToPromConfig(rc promcfg.RelabelConfig, c Configura
 	return promConfig
 }
 
-func Encode(rc promcfg.RelabelConfig) string {
+func encode(rc promcfg.RelabelConfig) string {
 	b, err := yaml.Marshal(rc)
 	if err != nil {
 		log.Fatal(err)
