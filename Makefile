@@ -39,6 +39,7 @@ version:
 	@echo BOMB SQUAD: $(BOMB_SQUAD_VERSION)
 
 $(BOMB_SQUAD_UPTODATE): $(BOMB_SQUAD_FILES)
+	go test -v ./...
 	GOOS=linux GOARCH=amd64 go build -o bin/bs -ldflags="-X main.promVersion=$(PROM_VERSION) -X main.promRulesVersion=$(PROM_RULES_VERSION) -X main.version=$(BOMB_SQUAD_VERSION)" .
 	docker build \
 		--tag $(BOMB_SQUAD_IMG) . \
