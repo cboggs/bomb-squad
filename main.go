@@ -22,18 +22,20 @@ import (
 )
 
 var (
-	version          = "undefined"
-	promVersion      = "undefined"
-	promRulesVersion = "undefined"
-	inK8s            = flag.Bool("k8s", false, "Whether bomb-squad is being deployed in a Kubernetes cluster")
-	k8sNamespace     = flag.String("k8s-namespace", "default", "Kubernetes namespace holding Prometheus ConfigMap")
-	k8sConfigMapName = flag.String("k8s-configmap", "prometheus", "Name of the Kubernetes ConfigMap holding Prometheus configuration")
-	metricsPort      = flag.Int("metrics-port", 8080, "Port on which to listen for metric scrapes")
-	promURL          = flag.String("prom-url", "http://localhost:9090", "Prometheus URL to query")
-	cmName           = flag.String("configmap-name", "prometheus", "Name of the Prometheus ConfigMap")
-	cmKey            = flag.String("configmap-prometheus-key", "prometheus.yml", "The key in the ConfigMap that holds the main Prometheus config")
-	getVersion       = flag.Bool("version", false, "return version information and exit")
-	versionGauge     = prometheus.NewGauge(
+	version            = "undefined"
+	promVersion        = "undefined"
+	promRulesVersion   = "undefined"
+	inK8s              = flag.Bool("k8s", true, "Whether bomb-squad is being deployed in a Kubernetes cluster")
+	k8sNamespace       = flag.String("k8s-namespace", "default", "Kubernetes namespace holding Prometheus ConfigMap")
+	k8sConfigMapName   = flag.String("k8s-configmap", "prometheus", "Name of the Kubernetes ConfigMap holding Prometheus configuration")
+	bsConfigLocation   = flag.String("bs-config-loc", "bomb-squad", "Where the Bomb Squad Config lives. For K8s deployments, this should be the ConfigMap.Data key. Otherwise, full path to file.")
+	promConfigLocation = flag.String("prom-config-loc", "prometheus.yml", "Where the Prometheus lives. For K8s deployments, this should be the ConfigMap.Data key. Otherwise, full path to file.")
+	metricsPort        = flag.Int("metrics-port", 8080, "Port on which to listen for metric scrapes")
+	promURL            = flag.String("prom-url", "http://localhost:9090", "Prometheus URL to query")
+	cmName             = flag.String("configmap-name", "prometheus", "Name of the Prometheus ConfigMap")
+	cmKey              = flag.String("configmap-prometheus-key", "prometheus.yml", "The key in the ConfigMap that holds the main Prometheus config")
+	getVersion         = flag.Bool("version", false, "return version information and exit")
+	versionGauge       = prometheus.NewGauge(
 		prometheus.GaugeOpts{
 			Namespace: "bomb_squad",
 			Name:      "details",
@@ -92,15 +94,14 @@ func main() {
 			log.Fatal(err)
 		}
 
-		promConfigurator = configmap.NewConfigMapWrapper(k8sClientSet, *k8sNamespace, *k8sConfigMapName)
-		bsConfigurator = configmap.NewConfigMapWrapper(k8sClientSet, *k8sNamespace, *k8sConfigMapName)
+		promConfigurator = configmap.NewConfigMapWrapper(k8sClientSet, *k8sNamespace, *k8sConfigMapName, *promConfigLocation)
+		bsConfigurator = configmap.NewConfigMapWrapper(k8sClientSet, *k8sNamespace, *k8sConfigMapName, *bsConfigLocation)
 	}
 
 	promurl, err := url.Parse(*promURL)
 	if err != nil {
 		log.Fatalf("could not parse prometheus url: %s", err)
 	}
-	log.Printf("PROMURL: %+v\n", promurl)
 
 	httpClient, err := util.HttpClient()
 	if err != nil {

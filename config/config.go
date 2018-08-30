@@ -16,6 +16,7 @@ import (
 type Configurator interface {
 	Read() []byte
 	Write([]byte) error
+	GetLocation() string
 }
 
 type BombSquadLabelConfig map[string]string
@@ -29,7 +30,7 @@ func ReadBombSquadConfig(c Configurator) BombSquadConfig {
 	bscfg := BombSquadConfig{}
 	err := yaml.Unmarshal(b, &bscfg)
 	if err != nil {
-		log.Fatalf("Couldn't unmarshal into BombSquadConfig: %s\n", err)
+		log.Fatalf("Couldn't unmarshal into config.BombSquadConfig: %s\n", err)
 	}
 	if bscfg.SuppressedMetrics == nil {
 		bscfg.SuppressedMetrics = map[string]BombSquadLabelConfig{}
@@ -43,7 +44,7 @@ func ReadPromConfig(c Configurator) promcfg.Config {
 	pcfg := promcfg.Config{}
 	err := yaml.Unmarshal(b, &pcfg)
 	if err != nil {
-		log.Fatalf("Couldn't unmarshal into promcfg.Config: %s\n", err)
+		log.Fatalf("Couldn't unmarshal into prometheus.Config: %s\n", err)
 	}
 	return pcfg
 }
@@ -51,6 +52,7 @@ func ReadPromConfig(c Configurator) promcfg.Config {
 func WriteBombSquadConfig(bscfg BombSquadConfig, c Configurator) error {
 	b, err := yaml.Marshal(bscfg)
 	if err != nil {
+		log.Printf("Failed to write Bomb Squad config: %s\n", err)
 		return err
 	}
 	return c.Write(b)
@@ -59,6 +61,7 @@ func WriteBombSquadConfig(bscfg BombSquadConfig, c Configurator) error {
 func WritePromConfig(pcfg promcfg.Config, c Configurator) error {
 	b, err := yaml.Marshal(pcfg)
 	if err != nil {
+		log.Printf("Failed to write Prometheus config: %s\n", err)
 		return err
 	}
 	return c.Write(b)
