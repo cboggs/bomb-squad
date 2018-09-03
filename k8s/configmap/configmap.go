@@ -5,7 +5,6 @@ import (
 	"log"
 
 	"k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/client-go/kubernetes"
 	kcorev1 "k8s.io/client-go/kubernetes/typed/core/v1"
 	"k8s.io/client-go/util/retry"
 )
@@ -20,9 +19,9 @@ type ConfigMapWrapper struct {
 }
 
 // NewConfigMapWrapper returns a ConfigMapWrapper
-func NewConfigMapWrapper(client kubernetes.Interface, namespace string, configMapName string, dataKey string) *ConfigMapWrapper {
+func NewConfigMapWrapper(client kcorev1.ConfigMapInterface, namespace string, configMapName string, dataKey string) *ConfigMapWrapper {
 	return &ConfigMapWrapper{
-		Client:  client.CoreV1().ConfigMaps(namespace),
+		Client:  client,
 		Name:    configMapName,
 		DataKey: dataKey,
 	}
@@ -73,7 +72,6 @@ func (c *ConfigMapWrapper) Write(data []byte) error {
 	if retryErr != nil {
 		return fmt.Errorf("ConfigMap update failed: %v", retryErr)
 	}
-	log.Println("Updated ConfigMap")
 
 	return nil
 }

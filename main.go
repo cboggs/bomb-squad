@@ -93,9 +93,9 @@ func main() {
 		if err != nil {
 			log.Fatal(err)
 		}
-
-		promConfigurator = configmap.NewConfigMapWrapper(k8sClientSet, *k8sNamespace, *k8sConfigMapName, *promConfigLocation)
-		bsConfigurator = configmap.NewConfigMapWrapper(k8sClientSet, *k8sNamespace, *k8sConfigMapName, *bsConfigLocation)
+		cmClient := k8sClientSet.CoreV1().ConfigMaps(*k8sNamespace)
+		promConfigurator = configmap.NewConfigMapWrapper(cmClient, *k8sNamespace, *k8sConfigMapName, *promConfigLocation)
+		bsConfigurator = configmap.NewConfigMapWrapper(cmClient, *k8sNamespace, *k8sConfigMapName, *bsConfigLocation)
 	}
 
 	promurl, err := url.Parse(*promURL)
