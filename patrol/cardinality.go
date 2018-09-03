@@ -6,7 +6,6 @@ import (
 	"log"
 	"net/url"
 	"strconv"
-	"time"
 
 	"github.com/Fresh-Tracks/bomb-squad/config"
 	"github.com/Fresh-Tracks/bomb-squad/prom"
@@ -53,6 +52,7 @@ func (p *Patrol) getTopCardinalities() error {
 	iq := &prom.InstantQuery{}
 	err = json.Unmarshal(b, iq)
 	if err != nil {
+		// Bail here because we're cooked if we can't wrangle Prometheus output
 		log.Fatal(err)
 	}
 
@@ -62,18 +62,40 @@ func (p *Patrol) getTopCardinalities() error {
 	}
 
 	for _, s := range highCardSeries {
-		mrc := config.GenerateMetricRelabelConfig(s)
-		prom.ReUnmarshal(&mrc)
+		mrc, err := config.GenerateMetricRelabelConfig(s)
+		if err != nil {
+			log.Printf("Couldn't generate metric relabel config for metric %s: %s\n", s.MetricName, err)
+		}
 
-		newPromConfig := config.InsertMetricRelabelConfigToPromConfig(mrc, p.PromConfigurator)
+		err = prom.ReUnmarshal(&mrc)
+		if err != nil {
+			log.Println(err)
+			continue
+		}
+
+		newPromConfig, err := config.InsertMetricRelabelConfigToPromConfig(mrc, p.PromConfigurator)
+		if err != nil {
+			log.Printf("Error inserting relabel config for metric %s: %s\n", s.MetricName, err)
+			continue
+		}
+
 		newPromConfigBytes, err := yaml.Marshal(newPromConfig)
+		if err != nil {
+			log.Printf("Error marshalling Prometheus config: %s\n", err)
+			continue
+		}
 
 		err = p.PromConfigurator.Write(newPromConfigBytes)
 		if err != nil {
-			log.Fatal(err)
+			log.Printf("Error writing Prometheus config: %s\n", err)
+			continue
 		}
 
-		config.StoreMetricRelabelConfigBombSquad(s, mrc, p.BSConfigurator)
+		err = config.StoreMetricRelabelConfigBombSquad(s, mrc, p.BSConfigurator)
+		if err != nil {
+			log.Printf("Couldn't store metric relabel config for metric %s: %s\n", s.MetricName, err)
+			continue
+		}
 	}
 
 	return nil
@@ -86,7 +108,8 @@ func (p *Patrol) cardinalityTooHigh(iq *prom.InstantQuery) []string {
 		val := v.Value[1].(string)
 		f, err := strconv.ParseFloat(val, 64)
 		if err != nil {
-			log.Fatal(err)
+			log.Printf("Couldn't parse float64 from '%s': %s\n", val, err)
+			continue
 		}
 
 		if f >= p.HighCardThreshold {
@@ -105,58 +128,6 @@ func (p *Patrol) getDistinctLabelValuesInSeries(s map[string]string, tracker lab
 		}
 		tracker[label].Add(value)
 	}
-}
-
-func (p *Patrol) tryToFindStableValues(metric, label string, currentSet mapset.Set) mapset.Set {
-	var s prom.Series
-	earlierSet := mapset.NewSet()
-	end := time.Now().Unix() - 30
-	start := end - 600
-	attempts := 0
-	maxAttempts := 100
-	diff := currentSet.Difference(earlierSet).Cardinality()
-	fmt.Println("Trying to find stable series...")
-
-	for attempts < maxAttempts && diff > 0 {
-		attempts++
-
-		earlierSet = mapset.NewSet()
-
-		end = start + 570
-		start = end - 600
-
-		relativeURL, err := url.Parse("/api/v1/series")
-		query := p.PromURL.Query()
-		query.Set("match[]", fmt.Sprintf("%s&start=%d&end=%d", metric, start, end))
-		relativeURL.RawQuery = query.Encode()
-
-		queryURL := p.PromURL.ResolveReference(relativeURL)
-
-		b, err := prom.Fetch(queryURL.String(), p.HTTPClient)
-		if err != nil {
-			log.Fatal(err)
-		}
-
-		err = json.Unmarshal(b, &s)
-		if err != nil {
-			log.Fatal(err)
-		}
-
-		for _, series := range s.Data {
-			earlierSet.Add(series[label])
-		}
-
-		diff = currentSet.Difference(earlierSet).Cardinality()
-
-		currentSet = earlierSet
-	}
-
-	if diff == 0 {
-		fmt.Printf("All done! Found stable series:\n%s\nTook %d attempts\n", earlierSet.String(), attempts)
-	} else {
-		fmt.Printf("Didn't make it after %d attempts.\n", attempts)
-	}
-	return earlierSet
 }
 
 func (p *Patrol) findHighCardSeries(metrics []string) []config.HighCardSeries {
@@ -178,11 +149,13 @@ func (p *Patrol) findHighCardSeries(metrics []string) []config.HighCardSeries {
 
 		b, err := prom.Fetch(queryURL.String(), p.HTTPClient)
 		if err != nil {
+			// Bail here because we're cooked if we can't reach Prometheus
 			log.Fatal(err)
 		}
 
 		err = json.Unmarshal(b, &s)
 		if err != nil {
+			// Bail here because we're cooked if we can't wrangle Prometheus results
 			log.Fatal(err)
 		}
 

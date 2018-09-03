@@ -2,7 +2,6 @@ package configmap
 
 import (
 	"fmt"
-	"log"
 
 	"k8s.io/apimachinery/pkg/apis/meta/v1"
 	kcorev1 "k8s.io/client-go/kubernetes/typed/core/v1"
@@ -33,17 +32,16 @@ func (c *ConfigMapWrapper) GetLocation() string {
 }
 
 // Read implements github.com/Fresh-Tracks/bomb-squad/config.Configurator
-func (c *ConfigMapWrapper) Read() []byte {
+func (c *ConfigMapWrapper) Read() ([]byte, error) {
 	dataKey := c.GetLocation()
 	cm, err := c.Client.Get(c.Name, v1.GetOptions{})
 	if err != nil {
-		log.Printf("Failed to get ConfigMap in preparation for Configurator.Read(): %s\n", err)
-		return []byte{}
+		return []byte{}, fmt.Errorf("Failed to get ConfigMap in preparation for Configurator.Read(): %s\n", err)
 	}
 
 	d := cm.Data[dataKey]
 
-	return []byte(d)
+	return []byte(d), nil
 }
 
 // Write implements github.com/Fresh-Tracks/bomb-squad/config.Configurator
@@ -56,7 +54,7 @@ func (c *ConfigMapWrapper) Write(data []byte) error {
 
 		cm, err := c.Client.Get(c.Name, v1.GetOptions{})
 		if err != nil {
-			panic(fmt.Errorf("Failed to get latest version of ConfigMap: %v", err))
+			return fmt.Errorf("Failed to get latest version of ConfigMap: %v", err)
 		}
 
 		cm.Data[dataKey] = string(data)

@@ -1,7 +1,6 @@
 package configmap
 
 import (
-	"log"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -14,28 +13,24 @@ import (
 func TestCanReadConfigMap(t *testing.T) {
 	cmw := NewConfigMapWrapper(fakeConfigMapClient(), "testNamespace", "testConfigMap", "testDataKey")
 
-	cm, err := cmw.Client.Create(newConfigMap())
-	if err != nil {
-		log.Fatal(err)
-	}
+	cm, _ := cmw.Client.Create(newConfigMap())
 
-	b := cmw.Read()
+	b, err := cmw.Read()
 
+	require.NoError(t, err)
 	require.Equal(t, cm.Data["testDataKey"], string(b))
 }
 
 func TestCanWriteConfigMap(t *testing.T) {
 	cmw := NewConfigMapWrapper(fakeConfigMapClient(), "testNamespace", "testConfigMap", "testDataKey")
 
-	_, err := cmw.Client.Create(newConfigMap())
-	if err != nil {
-		log.Fatal(err)
-	}
+	_, _ = cmw.Client.Create(newConfigMap())
 
-	err = cmw.Write([]byte("BazBat"))
+	err := cmw.Write([]byte("BazBat"))
 	require.NoError(t, err)
 
-	b := cmw.Read()
+	b, err := cmw.Read()
+	require.NoError(t, err)
 	require.Equal(t, "BazBat", string(b))
 }
 

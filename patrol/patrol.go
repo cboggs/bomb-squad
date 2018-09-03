@@ -30,7 +30,7 @@ func (p *Patrol) Run() {
 	for range ticker.C {
 		err := p.getTopCardinalities()
 		if err != nil {
-			log.Fatal(err)
+			log.Fatalf("Couldn't retrieve top cardinalities: %s\n", err)
 		}
 	}
 }

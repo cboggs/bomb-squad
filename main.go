@@ -129,7 +129,11 @@ func main() {
 		if cmd == "unsilence" {
 			label := os.Args[2]
 			fmt.Printf("Removing silence rule for suppressed label: %s\n", label)
-			config.RemoveSilence(label, p.PromConfigurator, p.BSConfigurator)
+			err := config.RemoveSilence(label, p.PromConfigurator, p.BSConfigurator)
+			if err != nil {
+				log.Fatalf("Could not remove silencing rule: %s\n", err)
+			}
+
 			os.Exit(0)
 		}
 	}

@@ -14,7 +14,7 @@ import (
 )
 
 type Configurator interface {
-	Read() []byte
+	Read() ([]byte, error)
 	Write([]byte) error
 	GetLocation() string
 }
@@ -25,28 +25,36 @@ type BombSquadConfig struct {
 	SuppressedMetrics map[string]BombSquadLabelConfig
 }
 
-func ReadBombSquadConfig(c Configurator) BombSquadConfig {
-	b := c.Read()
-	bscfg := BombSquadConfig{}
-	err := yaml.Unmarshal(b, &bscfg)
+func ReadBombSquadConfig(c Configurator) (BombSquadConfig, error) {
+	b, err := c.Read()
 	if err != nil {
-		log.Fatalf("Couldn't unmarshal into config.BombSquadConfig: %s\n", err)
+		return BombSquadConfig{}, fmt.Errorf("Failed to read Bomb Squad config: %s\n", err)
+	}
+
+	bscfg := BombSquadConfig{}
+	err = yaml.Unmarshal(b, &bscfg)
+	if err != nil {
+		return BombSquadConfig{}, fmt.Errorf("Couldn't unmarshal into config.BombSquadConfig: %s\n", err)
 	}
 	if bscfg.SuppressedMetrics == nil {
 		bscfg.SuppressedMetrics = map[string]BombSquadLabelConfig{}
 	}
 
-	return bscfg
+	return bscfg, nil
 }
 
-func ReadPromConfig(c Configurator) promcfg.Config {
-	b := c.Read()
-	pcfg := promcfg.Config{}
-	err := yaml.Unmarshal(b, &pcfg)
+func ReadPromConfig(c Configurator) (promcfg.Config, error) {
+	b, err := c.Read()
 	if err != nil {
-		log.Fatalf("Couldn't unmarshal into prometheus.Config: %s\n", err)
+		return promcfg.Config{}, fmt.Errorf("Failed to read Prometheus config: %s\n", err)
 	}
-	return pcfg
+
+	pcfg := promcfg.Config{}
+	err = yaml.Unmarshal(b, &pcfg)
+	if err != nil {
+		return promcfg.Config{}, fmt.Errorf("Couldn't unmarshal into prometheus.Config: %s\n", err)
+	}
+	return pcfg, nil
 }
 
 func WriteBombSquadConfig(bscfg BombSquadConfig, c Configurator) error {
@@ -68,7 +76,11 @@ func WritePromConfig(pcfg promcfg.Config, c Configurator) error {
 }
 
 func ListSuppressedMetrics(c Configurator) {
-	b := ReadBombSquadConfig(c)
+	b, err := ReadBombSquadConfig(c)
+	if err != nil {
+		log.Fatalf("Couldn't list suppressed metrics: %s\n", err)
+	}
+
 	for metric, labels := range b.SuppressedMetrics {
 		for label := range labels {
 			fmt.Printf("%s.%s\n", metric, label)
@@ -77,12 +89,19 @@ func ListSuppressedMetrics(c Configurator) {
 }
 
 func RemoveSilence(label string, pc, bc Configurator) error {
-	promConfig := ReadPromConfig(pc)
+	promConfig, err := ReadPromConfig(pc)
+	if err != nil {
+		return err
+	}
 
 	ml := strings.Split(label, ".")
 	metricName, labelName := ml[0], ml[1]
 
-	bsCfg := ReadBombSquadConfig(bc)
+	bsCfg, err := ReadBombSquadConfig(bc)
+	if err != nil {
+		return err
+	}
+
 	bsRelabelConfigEncoded := bsCfg.SuppressedMetrics[metricName][labelName]
 
 	for _, scrapeConfig := range promConfig.ScrapeConfigs {
@@ -99,16 +118,27 @@ func RemoveSilence(label string, pc, bc Configurator) error {
 		delete(bsCfg.SuppressedMetrics[metricName], labelName)
 	}
 
-	WriteBombSquadConfig(bsCfg, bc)
-	WritePromConfig(promConfig, pc)
+	err = WriteBombSquadConfig(bsCfg, bc)
+	if err != nil {
+		return err
+	}
+
+	err = WritePromConfig(promConfig, pc)
+	if err != nil {
+		return err
+	}
 
 	resetMetric(metricName, labelName)
 
 	return nil
 }
 
-func StoreMetricRelabelConfigBombSquad(s HighCardSeries, mrc promcfg.RelabelConfig, c Configurator) {
-	b := ReadBombSquadConfig(c)
+func StoreMetricRelabelConfigBombSquad(s HighCardSeries, mrc promcfg.RelabelConfig, c Configurator) error {
+	b, err := ReadBombSquadConfig(c)
+	if err != nil {
+		return err
+	}
+
 	if lc, ok := b.SuppressedMetrics[s.MetricName]; ok {
 		lc[string(s.HighCardLabelName)] = encode(mrc)
 	} else {
@@ -117,10 +147,12 @@ func StoreMetricRelabelConfigBombSquad(s HighCardSeries, mrc promcfg.RelabelConf
 		lc[string(s.HighCardLabelName)] = encode(mrc)
 	}
 
-	err := WriteBombSquadConfig(b, c)
+	err = WriteBombSquadConfig(b, c)
 	if err != nil {
 		log.Fatalf("Failed to write BombSquadConfig: %s\n", err)
 	}
+
+	return nil
 }
 
 func DeleteRelabelConfigFromArray(arr []*promcfg.RelabelConfig, index int) []*promcfg.RelabelConfig {
@@ -143,8 +175,12 @@ func FindRelabelConfigInScrapeConfig(encodedRule string, scrapeConfig promcfg.Sc
 	return -1
 }
 
-func InsertMetricRelabelConfigToPromConfig(rc promcfg.RelabelConfig, c Configurator) promcfg.Config {
-	promConfig := ReadPromConfig(c)
+func InsertMetricRelabelConfigToPromConfig(rc promcfg.RelabelConfig, c Configurator) (promcfg.Config, error) {
+	promConfig, err := ReadPromConfig(c)
+	if err != nil {
+		return promcfg.Config{}, err
+	}
+
 	rcEncoded := encode(rc)
 	for _, scrapeConfig := range promConfig.ScrapeConfigs {
 		if FindRelabelConfigInScrapeConfig(rcEncoded, *scrapeConfig) == -1 {
@@ -152,13 +188,14 @@ func InsertMetricRelabelConfigToPromConfig(rc promcfg.RelabelConfig, c Configura
 			scrapeConfig.MetricRelabelConfigs = append(scrapeConfig.MetricRelabelConfigs, &rc)
 		}
 	}
-	return promConfig
+	return promConfig, nil
 }
 
 func encode(rc promcfg.RelabelConfig) string {
 	b, err := yaml.Marshal(rc)
 	if err != nil {
-		log.Fatal(err)
+		// Bail here, because there's no point continuing anything else if we can't encode to a string
+		log.Fatalf("Failed to encode relabel config: %s\n", err)
 	}
 
 	s := fmt.Sprintf("%s", string(b))
@@ -180,12 +217,12 @@ type HighCardSeries struct {
 // the high-cardinality metric
 // TODO: Within a job, some series may never be exploding on this label. Consider including
 // all relevant labels in source_labels...?
-func GenerateMetricRelabelConfig(s HighCardSeries) promcfg.RelabelConfig {
+func GenerateMetricRelabelConfig(s HighCardSeries) (promcfg.RelabelConfig, error) {
 	valueReplace := "bs_silence"
 	regexpOriginal := fmt.Sprintf("^%s;.*$", s.MetricName)
 	promRegex, err := promcfg.NewRegexp(regexpOriginal)
 	if err != nil {
-		log.Fatal(err)
+		return promcfg.RelabelConfig{}, fmt.Errorf("Couldn't create promcfg.Regexp from '%s': %s\n", regexpOriginal, err)
 	}
 
 	newMetricRelabelConfig := promcfg.RelabelConfig{
@@ -195,7 +232,7 @@ func GenerateMetricRelabelConfig(s HighCardSeries) promcfg.RelabelConfig {
 		Replacement:  valueReplace,
 		Action:       "replace",
 	}
-	return newMetricRelabelConfig
+	return newMetricRelabelConfig, nil
 }
 
 func resetMetric(metricName, labelName string) {
