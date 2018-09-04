@@ -3,6 +3,48 @@
 	"ignore": "test",
 	"package": [
 		{
+			"checksumSHA1": "p8V5m/s0jtuGlqtJvFd68UIRF60=",
+			"path": "github.com/Fresh-Tracks/bomb-squad",
+			"revision": "3d319bb6710bb70cf6d8de3d99a8f7bab18bcc98",
+			"revisionTime": "2018-09-04T02:54:13Z"
+		},
+		{
+			"checksumSHA1": "czWz/ELWdwpFZrXcm3cKuRAdIz8=",
+			"path": "github.com/Fresh-Tracks/bomb-squad/config",
+			"revision": "3d319bb6710bb70cf6d8de3d99a8f7bab18bcc98",
+			"revisionTime": "2018-09-04T02:54:13Z"
+		},
+		{
+			"checksumSHA1": "03Je9LO2IwM8S6thLkl3ji50pdk=",
+			"path": "github.com/Fresh-Tracks/bomb-squad/k8s/configmap",
+			"revision": "3d319bb6710bb70cf6d8de3d99a8f7bab18bcc98",
+			"revisionTime": "2018-09-04T02:54:13Z"
+		},
+		{
+			"checksumSHA1": "1tasgYuTiNVe85tsyiLcpduAQxE=",
+			"path": "github.com/Fresh-Tracks/bomb-squad/patrol",
+			"revision": "3d319bb6710bb70cf6d8de3d99a8f7bab18bcc98",
+			"revisionTime": "2018-09-04T02:54:13Z"
+		},
+		{
+			"checksumSHA1": "+JcksCAxk0EZBK8x4EFhMK6BUL0=",
+			"path": "github.com/Fresh-Tracks/bomb-squad/prom",
+			"revision": "3d319bb6710bb70cf6d8de3d99a8f7bab18bcc98",
+			"revisionTime": "2018-09-04T02:54:13Z"
+		},
+		{
+			"checksumSHA1": "BLsPnaRT66IisVIWm4hpaYTEnGo=",
+			"path": "github.com/Fresh-Tracks/bomb-squad/run-local/statspitter",
+			"revision": "3d319bb6710bb70cf6d8de3d99a8f7bab18bcc98",
+			"revisionTime": "2018-09-04T02:54:13Z"
+		},
+		{
+			"checksumSHA1": "vpH3TK7GBx4vlCHObXguVjLCn0A=",
+			"path": "github.com/Fresh-Tracks/bomb-squad/util",
+			"revision": "3d319bb6710bb70cf6d8de3d99a8f7bab18bcc98",
+			"revisionTime": "2018-09-04T02:54:13Z"
+		},
+		{
 			"checksumSHA1": "CSPbwbyzqA6sfORicn4HFtIhF/c=",
 			"path": "github.com/davecgh/go-spew/spew",
 			"revision": "8991bc29aa16c548c550c7ff78260e27b9ab7c73",
