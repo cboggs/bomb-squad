@@ -6,16 +6,23 @@ agent:
     os_image: ubuntu1804
 
 blocks:
-  - name: "Build"
+  - name: "Test & Build"
     task:
       env_vars:
-        - name: GOPATH
-          value: /home/semaphore/bomb-squad/vendor
+        - name: APP_ENV
+          value: prod
       jobs:
+      - name: Unit Tests
+        commands:
+          - checkout
+          - ls -1
+          - pwd
+          - echo "Running unit tests..."
+          - go test -v ./...
       - name: Docker build
         commands:
           - checkout
           - ls -1
           - pwd
-          - echo "Building image"
+          - echo "Building image..."
           - make
