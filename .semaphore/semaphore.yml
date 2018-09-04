@@ -21,6 +21,7 @@ blocks:
           - pwd
           - echo "Building usable go workspace"
           - mkdir -p /home/semaphore/go/src/github.com/Fresh-Tracks
+          - ln -s /home/semaphore/bomb-squad/vendor /home/semaphore/go/src
           - ln -s /home/semaphore/bomb-squad /home/semaphore/go/src/github.com/Fresh-Tracks/bomb-squad
           - echo "Running unit tests..."
           - go test -v ./...
