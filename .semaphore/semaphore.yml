@@ -20,15 +20,15 @@ blocks:
           - echo "Building usable go workspace"
           - mkdir -p /home/semaphore/go
           - ln -s /home/semaphore/bomb-squad/vendor ${GOPATH}/src
-          - ln -s /home/semaphore/bomb-squad ${GOPATH}/src/github.com/Fresh-Tracks/bomb-squad
+            #- ln -s /home/semaphore/bomb-squad ${GOPATH}/src/github.com/Fresh-Tracks/bomb-squad
           - echo ${GOPATH} && ls -1 ${GOPATH}/src
-          - ls -1 ${GOPATH}/src/github.com/Fresh-Tracks
-          - echo "Running unit tests..."
-          - go test -v ./...
-      - name: Docker build
-        commands:
-          - checkout
-          - ls -1
-          - pwd
-          - echo "Building image..."
-          - make
+            #- ls -1 ${GOPATH}/src/github.com/Fresh-Tracks
+            #          - echo "Running unit tests..."
+            #          - go test -v ./...
+            #      - name: Docker build
+            #        commands:
+            #          - checkout
+            #          - ls -1
+            #          - pwd
+            #          - echo "Building image..."
+            #          - make
