@@ -18,7 +18,7 @@ blocks:
         commands:
           - checkout
           - echo "Building usable go workspace"
-          - mkdir -p /home/semaphore/go/src/github.com/Fresh-Tracks
+          - mkdir -p /home/semaphore/go
           - ln -s /home/semaphore/bomb-squad/vendor ${GOPATH}/src
           - ln -s /home/semaphore/bomb-squad ${GOPATH}/src/github.com/Fresh-Tracks/bomb-squad
           - echo ${GOPATH} && ls -1 ${GOPATH}/src
