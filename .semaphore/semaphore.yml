@@ -20,6 +20,7 @@ blocks:
           - ls -1
           - pwd
           - echo "Building usable go workspace"
+          - mkdir -p /go/src/github.com/cboggs
           - ln -s /home/semaphore/bomb-squad /go/src/github.com/cboggs/bomb-squad
           - echo "Running unit tests..."
           - go test -v ./...
