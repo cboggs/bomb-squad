@@ -9,8 +9,8 @@ blocks:
   - name: "Build"
     task:
       env_vars:
-        - name: APP_ENV
-          value: prod
+        - name: GOPATH
+          value: /home/semaphore/bomb-squad/vendor
       jobs:
       - name: Docker build
         commands:
