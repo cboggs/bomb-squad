@@ -11,12 +11,16 @@ blocks:
       env_vars:
         - name: APP_ENV
           value: prod
+        - name: GOPATH
+          value: /home/semaphore/bomb-squad
       jobs:
       - name: Unit Tests
         commands:
           - checkout
           - ls -1
           - pwd
+          - echo "Building usable go workspace"
+          - ln -s /home/semaphore/bomb-squad/vendor /home/semaphore/bomb-squad/src
           - echo "Running unit tests..."
           - go test -v ./...
       - name: Docker build
