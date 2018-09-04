@@ -22,18 +22,24 @@ IMAGE_NAME := gcr.io/freshtracks-io/bomb-squad:$(SHORT_SHA)
 vendor/vendor.json:
 	govendor init
 
-vendor: vendor/vendor.json
+vendor: vendor/vendor.json vendor/.uptodate
 	govendor add +external
 	govendor update +external
+	touch vendor/vendor.json
 
 unused: vendor/vendor.json
 	govendor list +unused
+
+vendor/.uptodate:
+	@echo "Updating vendored bits..."
+
 version:
 	@echo PROMETHEUS: $(PROM_VERSION)
 	@echo PROMETHEUS RULES: $(PROM_RULES_VERSION)
 	@echo BOMB SQUAD: $(BOMB_SQUAD_VERSION)
 
 $(BOMB_SQUAD_UPTODATE): $(BOMB_SQUAD_FILES)
+	go test -v ./...
 	GOOS=linux GOARCH=amd64 go build -o bin/bs -ldflags="-X main.promVersion=$(PROM_VERSION) -X main.promRulesVersion=$(PROM_RULES_VERSION) -X main.version=$(BOMB_SQUAD_VERSION)" .
 	docker build \
 		--tag $(BOMB_SQUAD_IMG) . \
