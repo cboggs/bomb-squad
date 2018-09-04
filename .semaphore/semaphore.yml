@@ -12,7 +12,7 @@ blocks:
         - name: APP_ENV
           value: prod
         - name: GOPATH
-          value: /go
+          value: /home/semaphore/go
       jobs:
       - name: Unit Tests
         commands:
@@ -20,8 +20,8 @@ blocks:
           - ls -1
           - pwd
           - echo "Building usable go workspace"
-          - mkdir -p /go/src/github.com/cboggs
-          - ln -s /home/semaphore/bomb-squad /go/src/github.com/cboggs/bomb-squad
+          - mkdir -p /home/semaphore/go/src/github.com/cboggs
+          - ln -s /home/semaphore/bomb-squad /home/semaphore/go/src/github.com/cboggs/bomb-squad
           - echo "Running unit tests..."
           - go test -v ./...
       - name: Docker build
