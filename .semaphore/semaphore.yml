@@ -16,5 +16,6 @@ blocks:
         commands:
           - checkout
           - ls -1
+          - pwd
           - echo "Building image"
           - make
