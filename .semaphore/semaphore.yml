@@ -20,7 +20,7 @@ blocks:
           - echo "Building usable go workspace"
           - mkdir -p ${GOPATH}
           - ln -s /home/semaphore/bomb-squad/vendor ${GOPATH}/src
-          - mkdir -p ${GOPATH}/Fresh-Tracks
+          - mkdir -p ${GOPATH}/src/github.com/Fresh-Tracks
           - ln -s /home/semaphore/bomb-squad ${GOPATH}/src/github.com/Fresh-Tracks/bomb-squad
           - echo "Running unit tests..."
           - go test -v ./...
