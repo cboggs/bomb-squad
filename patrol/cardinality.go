@@ -65,6 +65,7 @@ func (p *Patrol) getTopCardinalities() error {
 		mrc, err := config.GenerateMetricRelabelConfig(s)
 		if err != nil {
 			log.Printf("Couldn't generate metric relabel config for metric %s: %s\n", s.MetricName, err)
+			continue
 		}
 
 		err = prom.ReUnmarshal(&mrc)
