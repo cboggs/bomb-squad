@@ -43,11 +43,11 @@ func AppendRuleFile(filename string, c config.Configurator) error {
 func ReUnmarshal(rc *promcfg.RelabelConfig) error {
 	s, err := yaml.Marshal(rc)
 	if err != nil {
-		return fmt.Errorf("Failed to marshal relabel config: %s\n", err)
+		return fmt.Errorf("Failed to marshal relabel config: %s", err)
 	}
 	err = yaml.Unmarshal(s, rc)
 	if err != nil {
-		return fmt.Errorf("Failed to re-unmarshal relabel config: %s\n", err)
+		return fmt.Errorf("Failed to re-unmarshal relabel config: %s", err)
 	}
 	return nil
 }

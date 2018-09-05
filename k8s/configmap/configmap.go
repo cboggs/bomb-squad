@@ -36,7 +36,7 @@ func (c *ConfigMapWrapper) Read() ([]byte, error) {
 	dataKey := c.GetLocation()
 	cm, err := c.Client.Get(c.Name, v1.GetOptions{})
 	if err != nil {
-		return []byte{}, fmt.Errorf("Failed to get ConfigMap in preparation for Configurator.Read(): %s\n", err)
+		return []byte{}, fmt.Errorf("Failed to get ConfigMap in preparation for Configurator.Read(): %s", err)
 	}
 
 	d := cm.Data[dataKey]

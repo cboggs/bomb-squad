@@ -28,13 +28,13 @@ type BombSquadConfig struct {
 func ReadBombSquadConfig(c Configurator) (BombSquadConfig, error) {
 	b, err := c.Read()
 	if err != nil {
-		return BombSquadConfig{}, fmt.Errorf("Failed to read Bomb Squad config: %s\n", err)
+		return BombSquadConfig{}, fmt.Errorf("Failed to read Bomb Squad config: %s", err)
 	}
 
 	bscfg := BombSquadConfig{}
 	err = yaml.Unmarshal(b, &bscfg)
 	if err != nil {
-		return BombSquadConfig{}, fmt.Errorf("Couldn't unmarshal into config.BombSquadConfig: %s\n", err)
+		return BombSquadConfig{}, fmt.Errorf("Couldn't unmarshal into config.BombSquadConfig: %s", err)
 	}
 	if bscfg.SuppressedMetrics == nil {
 		bscfg.SuppressedMetrics = map[string]BombSquadLabelConfig{}
@@ -46,13 +46,13 @@ func ReadBombSquadConfig(c Configurator) (BombSquadConfig, error) {
 func ReadPromConfig(c Configurator) (promcfg.Config, error) {
 	b, err := c.Read()
 	if err != nil {
-		return promcfg.Config{}, fmt.Errorf("Failed to read Prometheus config: %s\n", err)
+		return promcfg.Config{}, fmt.Errorf("Failed to read Prometheus config: %s", err)
 	}
 
 	pcfg := promcfg.Config{}
 	err = yaml.Unmarshal(b, &pcfg)
 	if err != nil {
-		return promcfg.Config{}, fmt.Errorf("Couldn't unmarshal into prometheus.Config: %s\n", err)
+		return promcfg.Config{}, fmt.Errorf("Couldn't unmarshal into prometheus.Config: %s", err)
 	}
 	return pcfg, nil
 }
@@ -222,7 +222,7 @@ func GenerateMetricRelabelConfig(s HighCardSeries) (promcfg.RelabelConfig, error
 	regexpOriginal := fmt.Sprintf("^%s;.*$", s.MetricName)
 	promRegex, err := promcfg.NewRegexp(regexpOriginal)
 	if err != nil {
-		return promcfg.RelabelConfig{}, fmt.Errorf("Couldn't create promcfg.Regexp from '%s': %s\n", regexpOriginal, err)
+		return promcfg.RelabelConfig{}, fmt.Errorf("Couldn't create promcfg.Regexp from '%s': %s", regexpOriginal, err)
 	}
 
 	newMetricRelabelConfig := promcfg.RelabelConfig{
