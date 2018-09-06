@@ -77,14 +77,7 @@ func bootstrap(c config.Configurator) {
 func main() {
 	flag.Parse()
 	if *getVersion {
-		out := ""
-		for k, v := range map[string]string{
-			"version":          version,
-			"prometheus":       promVersion,
-			"prometheus-rules": promRulesVersion,
-		} {
-			out = out + fmt.Sprintf("%s: %s\n", k, v)
-		}
+		out := fmt.Sprintf("version: %s\nprometheus: %s\nprometheus-rules: %s\n", version, promVersion, promRulesVersion)
 		log.Fatal(out)
 	}
 

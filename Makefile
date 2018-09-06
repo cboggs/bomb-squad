@@ -2,6 +2,9 @@
 .DEFAULT_GOAL=all
 
 GOCMD=go
+GOLINTER=gometalinter
+GOLINTERFLAGSFAST=--deadline=120s --disable=varcheck --disable=structcheck --disable=maligned --disable=megacheck --disable=interfacer --cyclo-over=12
+GOLINTERFLAGSFULL=--deadline=300s
 GOBUILD = $(GOCMD) build
 GOCLEAN = $(GOCMD) clean
 GOTEST = $(GOCMD) test
@@ -46,7 +49,12 @@ $(BOMB_SQUAD_UPTODATE): $(BOMB_SQUAD_FILES)
 
 test:
 	$(GOCMD) test -v ./...
-		
+
+fastlint:
+	$(GOLINTER) $(GOLINTERFLAGSFAST)
+
+lint:
+	$(GOLINTER) $(GOLINTERFLAGSFULL)
 
 build: $(BOMB_SQUAD_UPTODATE) ## Docker-based build of relevant exes
 
