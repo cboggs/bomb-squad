@@ -30,7 +30,10 @@ jobs:
     - checkout
     - run:
         name: Test
-        command: go test -v ./...
+        command: make test
+    - run:
+        name: Lint
+        command: make fastlint
 
   build:
     <<: *defaults
