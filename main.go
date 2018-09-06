@@ -32,8 +32,6 @@ var (
 	promConfigLocation = flag.String("prom-config-loc", "prometheus.yml", "Where the Prometheus lives. For K8s deployments, this should be the ConfigMap.Data key. Otherwise, full path to file.")
 	metricsPort        = flag.Int("metrics-port", 8080, "Port on which to listen for metric scrapes")
 	promURL            = flag.String("prom-url", "http://localhost:9090", "Prometheus URL to query")
-	cmName             = flag.String("configmap-name", "prometheus", "Name of the Prometheus ConfigMap")
-	cmKey              = flag.String("configmap-prometheus-key", "prometheus.yml", "The key in the ConfigMap that holds the main Prometheus config")
 	getVersion         = flag.Bool("version", false, "return version information and exit")
 	versionGauge       = prometheus.NewGauge(
 		prometheus.GaugeOpts{
@@ -65,8 +63,15 @@ func bootstrap(c config.Configurator) {
 		log.Fatal(err)
 	}
 	err = ioutil.WriteFile("/etc/config/bomb-squad/rules.yaml", b, 0644)
+	if err != nil {
+		log.Fatalf("Error writing bootstrap recording rules: %s", err)
+	}
 
-	prom.AppendRuleFile("/etc/config/bomb-squad/rules.yaml", c)
+	err = prom.AppendRuleFile("/etc/config/bomb-squad/rules.yaml", c)
+	if err != nil {
+		log.Fatalf("Error adding bootstrap recording rules to Prometheus config: %s", err)
+	}
+
 }
 
 func main() {
